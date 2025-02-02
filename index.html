@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Fish</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(180deg, #1e90ff 0%, #000080 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        #homePage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #gameContainer {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .title {
+            font-size: 48px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background-color: #ff9900;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            background-color: #ffaa33;
+        }
+
+        .instructions {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 20px auto;
+            backdrop-filter: blur(5px);
+        }
+
+        .key-control {
+            display: inline-block;
+            background-color: #ffffff;
+            color: #000000;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+        }
+
+        .features-list {
+            text-align: left;
+            max-width: 500px;
+            margin: 20px auto;
+        }
+
+        .features-list li {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .features-list li::before {
+            content: "🐠";
+            margin-right: 10px;
+        }
+
+        .bubbles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: rise 15s infinite ease-in;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) scale(2);
+                opacity: 0;
+            }
+        }
+
+        #gameCanvas {
+            border: 2px solid #000;
+            background-color: #00bfff;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            font-size: 24px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="homePage">
+        <div class="bubbles">
+            <!-- Bubbles will be added by JavaScript -->
+        </div>
+        <h1 class="title">Flappy Fish</h1>
+        <button class="start-btn" onclick="startGame()">Start Game</button>
+        
+        <div class="instructions">
+            <h2>How to Play</h2>
+            <p>Help your fish navigate through the coral obstacles!</p>
+            <p>Use <span class="key-control">SPACE</span> or <span class="key-control">CLICK</span> to swim upward</p>
+            <p>Avoid hitting the coral and try to survive as long as possible!</p>
+        </div>
+
+        <div class="features-list">
+            <h2>Features</h2>
+            <ul>
+                <li>Simple and addictive gameplay</li>
+                <li>Beautiful underwater environment</li>
+                <li>Rising bubble effects</li>
+                <li>Score tracking system</li>
+                <li>Increasing difficulty</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="gameContainer">
+        <div id="score">Score: 0</div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+    </div>
+
+    <script>
+        // Add animated bubbles to homepage
+        function createBubbles() {
+            const bubblesContainer = document.querySelector('.bubbles');
+            for (let i = 0; i < 20; i++) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.style.left = `${Math.random() * 100}%`;
+                bubble.style.width = `${Math.random() * 30 + 10}px`;
+                bubble.style.height = bubble.style.width;
+                bubble.style.animationDelay = `${Math.random() * 15}s`;
+                bubblesContainer.appendChild(bubble);
+            }
+        }
+
+        function startGame() {
+            document.getElementById('homePage').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'flex';
+            // Initialize game
+            initGame();
+        }
+
+        // Create initial bubbles
+        createBubbles();
+
+        // ... existing game code ...
+        function initGame() {
+            // Move all the existing game code here
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreElement = document.getElementById('score');
+
+            // Game variables
+            let score = 0;
+            const fish = {
+                x: 50,
+                y: canvas.height / 2,
+                width: 30,
+                height: 20,
+                gravity: 0.5,
+                velocity: 0,
+                jump: -8
+            };
+
+            const obstacles = [];
+            const gap = 150;
+            const obstacleWidth = 50;
+            let gameOver = false;
+
+            // Create obstacles
+            function createObstacle() {
+                const minHeight = 50;
+                const maxHeight = canvas.height - gap - minHeight;
+                const height = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+
+                obstacles.push({
+                    x: canvas.width,
+                    y: 0,
+                    width: obstacleWidth,
+                    height: height,
+                    passed: false
+                });
+
+                obstacles.push({
+                    x: canvas.width,
+                    y: height + gap,
+                    width: obstacleWidth,
+                    height: canvas.height - height - gap
+                });
+            }
+
+            // Draw fish
+            function drawFish() {
+                ctx.fillStyle = '#ff9900';
+                ctx.beginPath();
+                ctx.ellipse(fish.x, fish.y, fish.width, fish.height, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw eye
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(fish.x + 10, fish.y - 5, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw tail
+                ctx.fillStyle = '#ff9900';
+                ctx.beginPath();
+                ctx.moveTo(fish.x - 15, fish.y);
+                ctx.lineTo(fish.x - 25, fish.y - 10);
+                ctx.lineTo(fish.x - 25, fish.y + 10);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Draw obstacles (coral)
+            function drawObstacles() {
+                ctx.fillStyle = '#ff4d4d';
+                obstacles.forEach(obstacle => {
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                });
+            }
+
+            // Draw bubbles
+            const bubbles = [];
+            function createBubble() {
+                if (Math.random() < 0.05) {
+                    bubbles.push({
+                        x: Math.random() * canvas.width,
+                        y: canvas.height,
+                        size: Math.random() * 10 + 5,
+                        speed: Math.random() * 2 + 1
+                    });
+                }
+            }
+
+            function drawBubbles() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                bubbles.forEach((bubble, index) => {
+                    ctx.beginPath();
+                    ctx.arc(bubble.x, bubble.y, bubble.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    bubble.y -= bubble.speed;
+                    
+                    if (bubble.y + bubble.size < 0) {
+                        bubbles.splice(index, 1);
+                    }
+                });
+            }
+
+            // Update game state
+            function update() {
+                if (gameOver) return;
+
+                // Update fish position
+                fish.velocity += fish.gravity;
+                fish.y += fish.velocity;
+
+                // Create new obstacles
+                if (obstacles.length === 0 || obstacles[0].x < canvas.width - 200) {
+                    createObstacle();
+                }
+
+                // Update obstacles
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    obstacles[i].x -= 2;
+
+                    // Remove off-screen obstacles
+                    if (obstacles[i].x + obstacleWidth < 0) {
+                        obstacles.splice(i, 1);
+                        continue;
+                    }
+
+                    // Check collision
+                    if (
+                        fish.x + fish.width > obstacles[i].x &&
+                        fish.x < obstacles[i].x + obstacles[i].width &&
+                        fish.y + fish.height > obstacles[i].y &&
+                        fish.y < obstacles[i].y + obstacles[i].height
+                    ) {
+                        gameOver = true;
+                    }
+                }
+
+                // Score update
+                for (let i = 0; i < obstacles.length; i += 2) {
+                    if (!obstacles[i].passed && obstacles[i].x + obstacleWidth < fish.x) {
+                        score++;
+                        scoreElement.textContent = `Score: ${score}`;
+                        obstacles[i].passed = true;
+                    }
+                }
+
+                // Check boundaries
+                if (fish.y < 0 || fish.y > canvas.height) {
+                    gameOver = true;
+                }
+
+                createBubble();
+            }
+
+            // Draw game
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                drawBubbles();
+                drawObstacles();
+                drawFish();
+
+                if (gameOver) {
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '48px Arial';
+                    ctx.fillText('Game Over!', canvas.width/2 - 100, canvas.height/2);
+                    ctx.font = '24px Arial';
+                    ctx.fillText('Click to restart', canvas.width/2 - 70, canvas.height/2 + 40);
+                }
+            }
+
+            // Game loop
+            function gameLoop() {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // Controls
+            document.addEventListener('keydown', function(e) {
+                if (e.code === 'Space' && !gameOver) {
+                    fish.velocity = fish.jump;
+                }
+            });
+
+            canvas.addEventListener('click', function() {
+                if (gameOver) {
+                    // Reset game
+                    gameOver = false;
+                    score = 0;
+                    scoreElement.textContent = `Score: ${score}`;
+                    fish.y = canvas.height / 2;
+                    fish.velocity = 0;
+                    obstacles.length = 0;
+                    bubbles.length = 0;
+                } else {
+                    fish.velocity = fish.jump;
+                }
+            });
+
+            // Start game
+            gameLoop();
+        }
+    </script>
+</body>
+</html> 
